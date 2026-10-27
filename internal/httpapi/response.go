@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/api"
+	api "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/generated"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/trip"
 )
 

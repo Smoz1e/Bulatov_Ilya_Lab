@@ -17,6 +17,7 @@ type Config struct {
 	LogLevel              string
 	ShutdownTimeout       time.Duration
 	Database              DatabaseConfig
+	Telemetry             TelemetryConfig
 }
 
 type DatabaseConfig struct {
@@ -26,6 +27,14 @@ type DatabaseConfig struct {
 	MaxConnLifetime time.Duration
 	ConnectTimeout  time.Duration
 	QueryTimeout    time.Duration
+}
+
+type TelemetryConfig struct {
+	ServiceName        string
+	Endpoint           string
+	Protocol           string
+	ResourceAttributes string
+	TracesSampler      string
 }
 
 func Load() (Config, error) {
@@ -84,6 +93,26 @@ func Load() (Config, error) {
 	}
 
 	if cfg.Database.QueryTimeout, err = positiveDuration("DATABASE_QUERY_TIMEOUT"); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.Telemetry.ServiceName, err = required("OTEL_SERVICE_NAME"); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.Telemetry.Endpoint, err = required("OTEL_EXPORTER_OTLP_ENDPOINT"); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.Telemetry.Protocol, err = required("OTEL_EXPORTER_OTLP_PROTOCOL"); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.Telemetry.ResourceAttributes, err = required("OTEL_RESOURCE_ATTRIBUTES"); err != nil {
+		return Config{}, err
+	}
+
+	if cfg.Telemetry.TracesSampler, err = required("OTEL_TRACES_SAMPLER"); err != nil {
 		return Config{}, err
 	}
 

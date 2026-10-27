@@ -10,8 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/api"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/config"
+	api "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/generated"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/httpapi"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/postgres"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/trip"

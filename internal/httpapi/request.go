@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/api"
+	api "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/generated"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/trip"
 	"github.com/google/uuid"
 )
