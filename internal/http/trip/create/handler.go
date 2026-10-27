@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/domainerror"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	"github.com/google/uuid"
 )
@@ -37,8 +39,6 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	_ = json.NewEncoder(w).Encode(value)
 }
-	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/domainerror"
 
 func (handler *Handler) writeProblem(w http.ResponseWriter, r *http.Request, err error) {
 	status, body := domainerror.Problem(err, r.URL.Path)
