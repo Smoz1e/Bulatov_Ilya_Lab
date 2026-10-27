@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/config"
+	"github.com/exaring/otelpgx"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/config"
 )
 
 func NewPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, error) {
@@ -18,6 +20,7 @@ func NewPool(ctx context.Context, cfg config.DatabaseConfig) (*pgxpool.Pool, err
 	poolConfig.MinConns = cfg.MinConns
 	poolConfig.MaxConnLifetime = cfg.MaxConnLifetime
 	poolConfig.ConnConfig.ConnectTimeout = cfg.ConnectTimeout
+	poolConfig.ConnConfig.Tracer = otelpgx.NewTracer()
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {

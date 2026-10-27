@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	api "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/generated"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
-	"github.com/google/uuid"
 )
 
 type createUsecaseFunc func(context.Context, model.CreateTripInput) (trip.Trip, error)

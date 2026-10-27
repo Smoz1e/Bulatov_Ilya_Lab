@@ -14,8 +14,10 @@ type Executor interface {
 	QueryRow(context.Context, string, ...any) pgx.Row
 }
 
-type Manager struct{ pool *pgxpool.Pool }
-type contextKey struct{}
+type (
+	Manager    struct{ pool *pgxpool.Pool }
+	contextKey struct{}
+)
 
 func New(pool *pgxpool.Pool) *Manager { return &Manager{pool: pool} }
 

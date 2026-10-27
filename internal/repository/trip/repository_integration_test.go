@@ -9,12 +9,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	domaintrip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/infra/postgres/transaction"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	repository "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/repository/trip"
-	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func TestRepositorySaveAndGet(t *testing.T) {

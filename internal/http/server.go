@@ -115,6 +115,14 @@ func (server *Server) Ready(w http.ResponseWriter, r *http.Request) {
 }
 
 func (server *Server) writeProblem(w http.ResponseWriter, r *http.Request, err error) {
+	WriteProblem(w, r, err)
+}
+
+func HandleOpenAPIError(w http.ResponseWriter, r *http.Request, err error) {
+	WriteProblem(w, r, &trip.ValidationError{Field: "request", Message: err.Error()})
+}
+
+func WriteProblem(w http.ResponseWriter, r *http.Request, err error) {
 	status, body := domainerror.Problem(err, r.URL.Path)
 	w.Header().Set("Content-Type", "application/problem+json")
 	writeJSON(w, status, body)

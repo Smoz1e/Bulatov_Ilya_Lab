@@ -3,8 +3,9 @@ package get
 import (
 	"context"
 
-	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	"github.com/google/uuid"
+
+	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 )
 
 type Usecase struct {

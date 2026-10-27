@@ -3,9 +3,10 @@ package finish
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
-	"github.com/google/uuid"
 )
 
 //go:generate go tool mockgen -source contract.go -destination mocks_test.go -package finish_test -mock_names tripRepository=MockTripRepository,statusHistoryRepository=MockStatusHistoryRepository,txManager=MockTxManager,metrics=MockMetrics

@@ -7,13 +7,14 @@ import (
 	"time"
 
 	sq "github.com/Masterminds/squirrel"
-	domaintrip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/infra/postgres/transaction"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	domaintrip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/infra/postgres/transaction"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 )
 
 const driverActiveUniqueIndex = "trips_driver_active_unique_idx"

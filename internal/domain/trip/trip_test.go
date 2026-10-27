@@ -5,9 +5,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+
 	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
-	"github.com/google/uuid"
 )
 
 func TestTripFinishCompletesActiveTrip(t *testing.T) {

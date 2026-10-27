@@ -7,10 +7,11 @@ import (
 	"testing"
 	"time"
 
-	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/create"
 	"github.com/google/uuid"
 	"go.uber.org/mock/gomock"
+
+	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/create"
 )
 
 func TestHandlerCreateReturnsCreatedTrip(t *testing.T) {

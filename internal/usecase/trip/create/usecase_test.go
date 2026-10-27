@@ -8,11 +8,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/uuid"
+	"go.uber.org/mock/gomock"
+
 	trip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/usecase/trip/create"
-	"github.com/google/uuid"
-	"go.uber.org/mock/gomock"
 )
 
 func TestUsecaseCreatePersistsTripAndHistoryBeforeRecordingMetric(t *testing.T) {

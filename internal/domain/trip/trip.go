@@ -3,8 +3,9 @@ package trip
 import (
 	"time"
 
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	"github.com/google/uuid"
+
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 )
 
 type Status string

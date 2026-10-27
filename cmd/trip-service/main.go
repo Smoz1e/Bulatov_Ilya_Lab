@@ -4,119 +4,61 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/config"
-	api "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/generated"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/httpapi"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/postgres"
-	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/trip"
-	"github.com/go-chi/chi/v5"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/container"
 )
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+
 	if err := run(ctx); err != nil {
-		fmt.Fprint(os.Stderr, err)
-		os.Exit(1)
+		fmt.Fprintln(os.Stderr, err)
 	}
 }
 
-func run(ctx context.Context) error {
+func run(ctx context.Context) (err error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return fmt.Errorf("load config: %w", err)
 	}
 
-	var logLevel slog.Level
-	if err := logLevel.UnmarshalText([]byte(cfg.LogLevel)); err != nil {
-		return fmt.Errorf("parse LOG_LEVEL: %w", err)
-	}
-
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: logLevel,
-	}))
-
-	pool, err := postgres.NewPool(ctx, cfg.Database)
+	application, err := container.New(ctx, cfg)
 	if err != nil {
-		return fmt.Errorf("connect to database: %w", err)
+		return err
 	}
-	defer pool.Close()
-
-	tripRepository := postgres.NewTripRepository(
-		pool,
-		cfg.Database.QueryTimeout,
-	)
-
-	historyRepository := postgres.NewTripStatusHistoryRepository(
-		pool,
-		cfg.Database.QueryTimeout,
-	)
-
-	txManager := postgres.NewTransactionManager(pool)
-
-	tripService := trip.NewService(
-		tripRepository,
-		historyRepository,
-		txManager,
-	)
-	router := chi.NewRouter()
-
-	httpHandler := api.HandlerWithOptions(
-		httpapi.NewHandler(
-			pool,
-			cfg.Database.QueryTimeout,
-			tripService,
-		),
-		api.ChiServerOptions{
-			BaseRouter:       router,
-			ErrorHandlerFunc: httpapi.HandleOpenAPIError,
-		},
-	)
-
-	server := &http.Server{
-		Addr:              cfg.HTTPAddr,
-		Handler:           httpHandler,
-		ReadTimeout:       cfg.HTTPReadTimeout,
-		ReadHeaderTimeout: cfg.HTTPReadHeaderTimeout,
-		WriteTimeout:      cfg.HTTPWriteTimeout,
-		IdleTimeout:       cfg.HTTPIdleTimeout,
-	}
-
-	serveErrors := make(chan error, 1)
-
-	go func() {
-		serveErrors <- server.ListenAndServe()
+	defer func() {
+		if closeErr := application.Close(context.WithoutCancel(ctx)); closeErr != nil && err == nil {
+			err = fmt.Errorf("close application: %w", closeErr)
+		}
 	}()
 
-	logger.Info("HTTP server started", "address", cfg.HTTPAddr)
+	serveErrors := make(chan error, 1)
+	go func() {
+		serveErrors <- application.Server.ListenAndServe()
+	}()
+	application.Logger.Info("HTTP server started", "address", cfg.HTTPAddr)
 
 	select {
-	case err := <-serveErrors:
-		if errors.Is(err, http.ErrServerClosed) {
+	case serveErr := <-serveErrors:
+		if errors.Is(serveErr, http.ErrServerClosed) {
 			return nil
 		}
 
-		return fmt.Errorf("listen and serve: %w", err)
-
+		return fmt.Errorf("listen and serve: %w", serveErr)
 	case <-ctx.Done():
-		logger.Info("shutting down HTTP server")
-
-		shutdownCtx, cancel := context.WithTimeout(
-			context.WithoutCancel(ctx),
-			cfg.ShutdownTimeout,
-		)
+		application.Logger.Info("shutting down HTTP server")
+		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.ShutdownTimeout)
 		defer cancel()
 
-		if err := server.Shutdown(shutdownCtx); err != nil {
-			return fmt.Errorf("shutdown HTTP server: %w", err)
+		if shutdownErr := application.Server.Shutdown(shutdownCtx); shutdownErr != nil {
+			return fmt.Errorf("shutdown HTTP server: %w", shutdownErr)
 		}
-
 		return nil
 	}
 }
