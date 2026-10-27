@@ -45,19 +45,19 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	if cfg.HTTPReadTimeout, err = positiveDuration("HTTP_READ_TIMEOUT"); err != nil {
+	if cfg.HTTPReadTimeout, err = durationOrDefault("HTTP_READ_TIMEOUT", 5*time.Second); err != nil {
 		return Config{}, err
 	}
 
-	if cfg.HTTPReadHeaderTimeout, err = positiveDuration("HTTP_READ_HEADER_TIMEOUT"); err != nil {
+	if cfg.HTTPReadHeaderTimeout, err = durationOrDefault("HTTP_READ_HEADER_TIMEOUT", 2*time.Second); err != nil {
 		return Config{}, err
 	}
 
-	if cfg.HTTPWriteTimeout, err = positiveDuration("HTTP_WRITE_TIMEOUT"); err != nil {
+	if cfg.HTTPWriteTimeout, err = durationOrDefault("HTTP_WRITE_TIMEOUT", 10*time.Second); err != nil {
 		return Config{}, err
 	}
 
-	if cfg.HTTPIdleTimeout, err = positiveDuration("HTTP_IDLE_TIMEOUT"); err != nil {
+	if cfg.HTTPIdleTimeout, err = durationOrDefault("HTTP_IDLE_TIMEOUT", time.Minute); err != nil {
 		return Config{}, err
 	}
 	if cfg.LogLevel, err = required("LOG_LEVEL"); err != nil {
@@ -139,6 +139,26 @@ func positiveDuration(key string) (time.Duration, error) {
 		return 0, fmt.Errorf("parse %s: %w", key, err)
 	}
 
+	if duration <= 0 {
+		return 0, fmt.Errorf("%s must be positive", key)
+	}
+
+	return duration, nil
+}
+
+func durationOrDefault(key string, defaultValue time.Duration) (time.Duration, error) {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue, nil
+	}
+	if strings.TrimSpace(value) == "" {
+		return 0, fmt.Errorf("required environment variable %s is not set", key)
+	}
+
+	duration, err := time.ParseDuration(value)
+	if err != nil {
+		return 0, fmt.Errorf("parse %s: %w", key, err)
+	}
 	if duration <= 0 {
 		return 0, fmt.Errorf("%s must be positive", key)
 	}
