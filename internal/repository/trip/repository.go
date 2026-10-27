@@ -64,6 +64,37 @@ func (repository *Repository) GetByID(ctx context.Context, id uuid.UUID) (domain
 	return repository.scanTrip(repository.pool.QueryRow(queryCtx, query, arguments...))
 }
 
+func (repository *Repository) GetForUpdate(ctx context.Context, id uuid.UUID) (domaintrip.Trip, error) {
+	query, arguments, err := repository.selectTrip().Where(sq.Eq{"id": id}).Suffix("FOR UPDATE").ToSql()
+	if err != nil {
+		return domaintrip.Trip{}, fmt.Errorf("build get trip for update: %w", err)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, repository.queryTimeout)
+	defer cancel()
+	return repository.scanTrip(repository.pool.QueryRow(queryCtx, query, arguments...))
+}
+
+func (repository *Repository) Update(ctx context.Context, value domaintrip.Trip) error {
+	query, arguments, err := repository.builder.Update("trips").
+		Set("status", string(value.Status)).
+		Set("finished_at", value.FinishedAt).
+		Set("updated_at", sq.Expr("now()")).
+		Where(sq.Eq{"id": value.ID}).
+		ToSql()
+	if err != nil {
+		return fmt.Errorf("build update trip: %w", err)
+	}
+
+	queryCtx, cancel := context.WithTimeout(ctx, repository.queryTimeout)
+	defer cancel()
+	_, err = repository.pool.Exec(queryCtx, query, arguments...)
+	if err != nil {
+		return fmt.Errorf("update trip: %w", err)
+	}
+	return nil
+}
+
 func (repository *Repository) selectTrip() sq.SelectBuilder {
 	return repository.builder.Select("id", "user_id", "driver_id", "start_latitude", "start_longitude", "end_latitude", "end_longitude", "price", "status", "started_at", "finished_at").From("trips")
 }

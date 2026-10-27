@@ -36,6 +36,37 @@ func TestRepositorySaveAndGet(t *testing.T) {
 	}
 }
 
+func TestRepositoryLocksAndUpdatesTrip(t *testing.T) {
+	pool := integrationPool(t)
+	repo := repository.New(pool, 3*time.Second)
+	value := integrationTrip(t)
+	t.Cleanup(func() {
+		cleanupTrip(t, pool, value.ID)
+	})
+	if err := repo.Save(context.Background(), value); err != nil {
+		t.Fatalf("Save() error = %v", err)
+	}
+
+	locked, err := repo.GetForUpdate(context.Background(), value.ID)
+	if err != nil {
+		t.Fatalf("GetForUpdate() error = %v", err)
+	}
+	if err := locked.Finish(time.Now().UTC()); err != nil {
+		t.Fatalf("Finish() error = %v", err)
+	}
+	if err := repo.Update(context.Background(), locked); err != nil {
+		t.Fatalf("Update() error = %v", err)
+	}
+
+	actual, err := repo.GetByID(context.Background(), value.ID)
+	if err != nil {
+		t.Fatalf("GetByID() error = %v", err)
+	}
+	if actual.Status != domaintrip.StatusCompleted || actual.FinishedAt == nil {
+		t.Errorf("updated trip = %#v, want completed trip", actual)
+	}
+}
+
 func integrationPool(t *testing.T) *pgxpool.Pool {
 	t.Helper()
 	url := os.Getenv("DATABASE_URL")
