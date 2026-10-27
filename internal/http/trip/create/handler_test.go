@@ -31,3 +31,19 @@ func TestHandlerCreateReturnsCreatedTrip(t *testing.T) {
 		t.Errorf("Location = %q", recorder.Header().Get("Location"))
 	}
 }
+
+func TestHandlerCreateReturnsProblemForMalformedJSON(t *testing.T) {
+	controller := gomock.NewController(t)
+	handler := create.New(NewMockUsecase(controller))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/trips", strings.NewReader(`{"user_id":`))
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
+	if recorder.Header().Get("Content-Type") != "application/problem+json" {
+		t.Errorf("Content-Type = %q, want application/problem+json", recorder.Header().Get("Content-Type"))
+	}
+}
