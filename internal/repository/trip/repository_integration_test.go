@@ -4,11 +4,13 @@ package trip_test
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
 
 	domaintrip "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/domain/trip"
+	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/infra/postgres/transaction"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 	repository "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/repository/trip"
 	"github.com/google/uuid"
@@ -64,6 +66,41 @@ func TestRepositoryLocksAndUpdatesTrip(t *testing.T) {
 	}
 	if actual.Status != domaintrip.StatusCompleted || actual.FinishedAt == nil {
 		t.Errorf("updated trip = %#v, want completed trip", actual)
+	}
+}
+
+func TestTransactionRollbackRemovesTripAndHistory(t *testing.T) {
+	pool := integrationPool(t)
+	repo := repository.New(pool, 3*time.Second)
+	manager := transaction.New(pool)
+	value := integrationTrip(t)
+	failure := errors.New("rollback")
+	t.Cleanup(func() {
+		cleanupTrip(t, pool, value.ID)
+	})
+
+	err := manager.Do(context.Background(), func(ctx context.Context) error {
+		if err := repo.Save(ctx, value); err != nil {
+			return err
+		}
+		if err := repo.Add(ctx, model.StatusChange{TripID: value.ID, ToStatus: string(domaintrip.StatusActive), Reason: "trip created"}); err != nil {
+			return err
+		}
+		return failure
+	})
+	if !errors.Is(err, failure) {
+		t.Fatalf("Do() error = %v, want %v", err, failure)
+	}
+
+	var trips, history int
+	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM trips WHERE id = $1", value.ID).Scan(&trips); err != nil {
+		t.Fatalf("count trips: %v", err)
+	}
+	if err := pool.QueryRow(context.Background(), "SELECT count(*) FROM trip_status_history WHERE trip_id = $1", value.ID).Scan(&history); err != nil {
+		t.Fatalf("count history: %v", err)
+	}
+	if trips != 0 || history != 0 {
+		t.Errorf("rows after rollback: trips=%d history=%d, want 0 and 0", trips, history)
 	}
 }
 
