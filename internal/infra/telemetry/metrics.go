@@ -10,6 +10,7 @@ import (
 )
 
 type Metrics struct {
+	*positionMetrics
 	tripCreated   metric.Int64Counter
 	tripCompleted metric.Int64Counter
 	httpDuration  metric.Float64Histogram
@@ -35,11 +36,17 @@ func NewMetrics() (*Metrics, error) {
 		return nil, fmt.Errorf("create HTTP active-requests metric: %w", err)
 	}
 
+	positions, err := newPositionMetrics(meter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Metrics{
-		tripCreated:   tripCreated,
-		tripCompleted: tripCompleted,
-		httpDuration:  httpDuration,
-		httpActive:    httpActive,
+		positionMetrics: positions,
+		tripCreated:     tripCreated,
+		tripCompleted:   tripCompleted,
+		httpDuration:    httpDuration,
+		httpActive:      httpActive,
 	}, nil
 }
 

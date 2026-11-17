@@ -74,3 +74,16 @@ func (repository *Repository) StaleTrips(ctx context.Context, after time.Duratio
 	}
 	return trips, nil
 }
+
+func (repository *Repository) IsStale(ctx context.Context, id uuid.UUID, after time.Duration) (bool, error) {
+	queryCtx, cancel := context.WithTimeout(ctx, repository.queryTimeout)
+	defer cancel()
+	var stale bool
+	err := transaction.FromContext(queryCtx, repository.pool).QueryRow(queryCtx, `SELECT EXISTS (
+		SELECT 1 FROM trips WHERE id = $1 AND status = 'active'
+		AND COALESCE(last_position_at, started_at) < now() - ($2 * interval '1 second'))`, id, after.Seconds()).Scan(&stale)
+	if err != nil {
+		return false, fmt.Errorf("check stale trip: %w", err)
+	}
+	return stale, nil
+}

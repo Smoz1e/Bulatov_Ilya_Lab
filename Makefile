@@ -17,6 +17,7 @@ test-integration:
 
 generate:
 	go tool oapi-codegen -config api/oapi-codegen.yaml contracts/openapi/trip-service.openapi.yaml
+	go tool oapi-codegen -generate types -package pushapi -o internal/generated/push/api.gen.go contracts/openapi/push-service.openapi.yaml
 	go generate ./internal/...
 
 lint:
