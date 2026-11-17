@@ -27,19 +27,19 @@ func New(value usecase) *Handler { return &Handler{usecase: value} }
 func (handler *Handler) Create(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, 1<<20))
 	if err != nil || !requiredFields(body) {
-		problem(w, r, &trip.ValidationError{Field: "body", Message: "invalid position"})
+		invalidPosition(w, r)
 		return
 	}
 	var request api.PositionData
 	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&request); err != nil {
-		problem(w, r, &trip.ValidationError{Field: "body", Message: "invalid position"})
+		invalidPosition(w, r)
 		return
 	}
 	var extra any
 	if err := decoder.Decode(&extra); err != io.EOF {
-		problem(w, r, &trip.ValidationError{Field: "body", Message: "invalid position"})
+		invalidPosition(w, r)
 		return
 	}
 	value, err := handler.usecase.Save(r.Context(), model.Position{TripID: id, Coordinates: model.Coordinates{
@@ -69,6 +69,10 @@ func requiredFields(body []byte) bool {
 	return true
 }
 
+func invalidPosition(w http.ResponseWriter, r *http.Request) {
+	problem(w, r, &trip.ValidationError{Field: "body", Message: "invalid position"})
+}
+
 func (handler *Handler) List(w http.ResponseWriter, r *http.Request, id uuid.UUID) {
 	positions, err := handler.usecase.List(r.Context(), id)
 	if err != nil {
@@ -83,8 +87,10 @@ func (handler *Handler) List(w http.ResponseWriter, r *http.Request, id uuid.UUI
 }
 
 func toAPI(value model.Position) api.TripPosition {
-	return api.TripPosition{Id: value.ID, TripId: value.TripID, RecordedAt: value.RecordedAt,
-		Coordinates: api.Coordinates{Latitude: value.Coordinates.Latitude, Longitude: value.Coordinates.Longitude}}
+	return api.TripPosition{
+		Id: value.ID, TripId: value.TripID, RecordedAt: value.RecordedAt,
+		Coordinates: api.Coordinates{Latitude: value.Coordinates.Latitude, Longitude: value.Coordinates.Longitude},
+	}
 }
 
 func problem(w http.ResponseWriter, r *http.Request, err error) {

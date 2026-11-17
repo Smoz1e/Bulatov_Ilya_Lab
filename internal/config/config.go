@@ -18,6 +18,16 @@ type Config struct {
 	ShutdownTimeout       time.Duration
 	Database              DatabaseConfig
 	Telemetry             TelemetryConfig
+	Position              PositionConfig
+}
+
+type PositionConfig struct {
+	CheckInterval  time.Duration
+	StaleAfter     time.Duration
+	Workers        int
+	QueueSize      int
+	PushURL        string
+	RequestTimeout time.Duration
 }
 
 type DatabaseConfig struct {
@@ -116,6 +126,25 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
+	if cfg.Position.CheckInterval, err = durationOrDefault("POSITION_CHECK_INTERVAL", 30*time.Second); err != nil {
+		return Config{}, err
+	}
+	if cfg.Position.StaleAfter, err = durationOrDefault("POSITION_STALE_AFTER", time.Minute); err != nil {
+		return Config{}, err
+	}
+	if cfg.Position.Workers, err = intOrDefault("POSITION_WORKERS", 4); err != nil {
+		return Config{}, err
+	}
+	if cfg.Position.QueueSize, err = intOrDefault("POSITION_QUEUE_SIZE", 100); err != nil {
+		return Config{}, err
+	}
+	if cfg.Position.PushURL, err = required("PUSH_HTTP_URL"); err != nil {
+		return Config{}, err
+	}
+	if cfg.Position.RequestTimeout, err = durationOrDefault("PUSH_REQUEST_TIMEOUT", time.Second); err != nil {
+		return Config{}, err
+	}
+
 	return cfg, nil
 }
 
@@ -195,4 +224,16 @@ func nonNegativeInt32(key string) (int32, error) {
 	}
 
 	return int32(number), nil
+}
+
+func intOrDefault(key string, defaultValue int) (int, error) {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return defaultValue, nil
+	}
+	number, err := strconv.Atoi(value)
+	if err != nil || number <= 0 {
+		return 0, fmt.Errorf("%s must be a positive integer", key)
+	}
+	return number, nil
 }

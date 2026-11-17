@@ -20,11 +20,15 @@ type fakeRepo struct {
 func (repo *fakeRepo) GetForUpdate(context.Context, uuid.UUID) (trip.Trip, error) {
 	return repo.value, nil
 }
+
 func (repo *fakeRepo) GetByID(context.Context, uuid.UUID) (trip.Trip, error) { return repo.value, nil }
+
 func (repo *fakeRepo) SavePosition(_ context.Context, p model.Position) (model.Position, error) {
 	repo.saved++
+	p.ID = 42
 	return p, nil
 }
+
 func (repo *fakeRepo) ListPositions(context.Context, uuid.UUID) ([]model.Position, error) {
 	return []model.Position{}, nil
 }
@@ -86,5 +90,16 @@ func TestSaveRejectsInvalidCoordinatesAndFutureTimestamp(t *testing.T) {
 	}
 	if repo.saved != 0 {
 		t.Fatalf("invalid coordinates were saved: %d", repo.saved)
+	}
+}
+
+func TestSavePositionCancelsQueueAfterSuccess(t *testing.T) {
+	repo := &fakeRepo{value: trip.Trip{Status: trip.StatusActive}}
+	cancellation := &fakeCancel{}
+	metrics := &fakeMetrics{}
+	usecase := New(repo, fakeTx{}, cancellation, metrics, time.Now)
+	saved, err := usecase.Save(context.Background(), model.Position{TripID: uuid.New(), RecordedAt: time.Now()})
+	if err != nil || saved.ID != 42 || repo.saved != 1 || cancellation.calls != 1 || metrics.saved != 1 {
+		t.Fatalf("error=%v saved=%d cancelled=%d metrics=%d", err, repo.saved, cancellation.calls, metrics.saved)
 	}
 }

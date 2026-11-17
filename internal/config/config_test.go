@@ -69,6 +69,7 @@ func setRequiredEnvironment(t *testing.T) {
 
 func setEnvironmentWithoutHTTPTimeouts(t *testing.T) {
 	t.Helper()
+	t.Setenv("PUSH_HTTP_URL", "http://localhost:8090")
 	t.Setenv("HTTP_ADDR", ":8080")
 	t.Setenv("LOG_LEVEL", "info")
 	t.Setenv("SHUTDOWN_TIMEOUT", "10s")
@@ -78,4 +79,20 @@ func setEnvironmentWithoutHTTPTimeouts(t *testing.T) {
 	t.Setenv("DATABASE_MAX_CONN_LIFETIME", "30m")
 	t.Setenv("DATABASE_CONNECT_TIMEOUT", "5s")
 	t.Setenv("DATABASE_QUERY_TIMEOUT", "3s")
+}
+
+func TestLoadPositionDefaults(t *testing.T) {
+	setRequiredEnvironment(t)
+	t.Setenv("OTEL_SERVICE_NAME", "trip-service")
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4318")
+	t.Setenv("OTEL_EXPORTER_OTLP_PROTOCOL", "http/protobuf")
+	t.Setenv("OTEL_RESOURCE_ATTRIBUTES", "service.namespace=tripgo")
+	t.Setenv("OTEL_TRACES_SAMPLER", "always_on")
+	cfg, err := Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Position.CheckInterval.String() != "30s" || cfg.Position.StaleAfter.String() != "1m0s" || cfg.Position.Workers != 4 || cfg.Position.QueueSize != 100 || cfg.Position.RequestTimeout.String() != "1s" {
+		t.Fatalf("unexpected position configuration: %+v", cfg.Position)
+	}
 }

@@ -12,6 +12,7 @@ import (
 	createhandler "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/create"
 	finishhandler "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/finish"
 	gethandler "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/get"
+	positionhandler "github.com/Smoz1e/Bulatov_Ilya_Lab/internal/http/trip/position"
 	"github.com/Smoz1e/Bulatov_Ilya_Lab/internal/model"
 )
 
@@ -31,11 +32,17 @@ type finishTripUsecase interface {
 	Finish(context.Context, api.TripId) (trip.Trip, error)
 }
 
+type positionUsecase interface {
+	Save(context.Context, model.Position) (model.Position, error)
+	List(context.Context, api.TripId) ([]model.Position, error)
+}
+
 type Server struct {
 	api.Unimplemented
 	create       *createhandler.Handler
 	get          *gethandler.Handler
 	finish       *finishhandler.Handler
+	position     *positionhandler.Handler
 	pinger       pinger
 	queryTimeout time.Duration
 }
@@ -66,6 +73,26 @@ func (server *Server) GetTrip(w http.ResponseWriter, r *http.Request, id api.Tri
 
 func (server *Server) FinishTrip(w http.ResponseWriter, r *http.Request, id api.TripId) {
 	server.finish.FinishTrip(w, r, id)
+}
+
+func (server *Server) SetPositions(usecase positionUsecase) {
+	server.position = positionhandler.New(usecase)
+}
+
+func (server *Server) CreateTripPosition(w http.ResponseWriter, r *http.Request, id api.TripId) {
+	if server.position == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	server.position.Create(w, r, id)
+}
+
+func (server *Server) ListTripPositions(w http.ResponseWriter, r *http.Request, id api.TripId) {
+	if server.position == nil {
+		w.WriteHeader(http.StatusNotImplemented)
+		return
+	}
+	server.position.List(w, r, id)
 }
 
 func (server *Server) Health(w http.ResponseWriter, _ *http.Request) {

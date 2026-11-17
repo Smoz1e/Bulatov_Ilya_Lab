@@ -20,6 +20,7 @@ func (service *fakeService) Save(_ context.Context, value model.Position) (model
 	value.ID = 42
 	return value, nil
 }
+
 func (*fakeService) List(context.Context, uuid.UUID) ([]model.Position, error) {
 	return []model.Position{}, nil
 }

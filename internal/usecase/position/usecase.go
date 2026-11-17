@@ -22,8 +22,10 @@ type transactionManager interface {
 	Do(context.Context, func(context.Context) error) error
 }
 
-type canceller interface{ Cancel(uuid.UUID) }
-type metrics interface{ PositionSaved(context.Context) }
+type (
+	canceller interface{ Cancel(uuid.UUID) }
+	metrics   interface{ PositionSaved(context.Context) }
+)
 
 type Usecase struct {
 	repository repository

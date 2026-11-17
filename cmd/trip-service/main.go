@@ -33,8 +33,13 @@ func run(ctx context.Context) (err error) {
 		return err
 	}
 	defer func() {
-		if closeErr := application.Close(context.WithoutCancel(ctx)); closeErr != nil && err == nil {
-			err = fmt.Errorf("close application: %w", closeErr)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), cfg.ShutdownTimeout)
+		defer cancel()
+		if shutdownErr := application.Server.Shutdown(shutdownCtx); shutdownErr != nil {
+			err = errors.Join(err, fmt.Errorf("shutdown HTTP server: %w", shutdownErr))
+		}
+		if closeErr := application.Close(shutdownCtx); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("close application: %w", closeErr))
 		}
 	}()
 
@@ -53,12 +58,7 @@ func run(ctx context.Context) (err error) {
 		return fmt.Errorf("listen and serve: %w", serveErr)
 	case <-ctx.Done():
 		application.Logger.Info("shutting down HTTP server")
-		shutdownCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), cfg.ShutdownTimeout)
-		defer cancel()
 
-		if shutdownErr := application.Server.Shutdown(shutdownCtx); shutdownErr != nil {
-			return fmt.Errorf("shutdown HTTP server: %w", shutdownErr)
-		}
 		return nil
 	}
 }
