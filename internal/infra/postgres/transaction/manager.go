@@ -12,6 +12,7 @@ import (
 type Executor interface {
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 	QueryRow(context.Context, string, ...any) pgx.Row
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 }
 
 type (

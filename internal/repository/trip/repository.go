@@ -112,13 +112,13 @@ func (repository *Repository) Add(ctx context.Context, change model.StatusChange
 }
 
 func (repository *Repository) selectTrip() sq.SelectBuilder {
-	return repository.builder.Select("id", "user_id", "driver_id", "start_latitude", "start_longitude", "end_latitude", "end_longitude", "price", "status", "started_at", "finished_at").From("trips")
+	return repository.builder.Select("id", "user_id", "driver_id", "start_latitude", "start_longitude", "end_latitude", "end_longitude", "price", "status", "started_at", "finished_at", "last_position_at").From("trips")
 }
 
 func (repository *Repository) scanTrip(row pgx.Row) (domaintrip.Trip, error) {
 	var value domaintrip.Trip
 	var status string
-	if err := row.Scan(&value.ID, &value.UserID, &value.DriverID, &value.StartPoint.Latitude, &value.StartPoint.Longitude, &value.EndPoint.Latitude, &value.EndPoint.Longitude, &value.Price, &status, &value.StartedAt, &value.FinishedAt); err != nil {
+	if err := row.Scan(&value.ID, &value.UserID, &value.DriverID, &value.StartPoint.Latitude, &value.StartPoint.Longitude, &value.EndPoint.Latitude, &value.EndPoint.Longitude, &value.Price, &status, &value.StartedAt, &value.FinishedAt, &value.LastPositionAt); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domaintrip.Trip{}, domaintrip.ErrTripNotFound
 		}
