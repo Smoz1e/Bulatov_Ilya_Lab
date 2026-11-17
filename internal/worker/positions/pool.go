@@ -104,11 +104,8 @@ func (pool *Pool) scanOnce() {
 		if ctx.Err() != nil {
 			return
 		}
-		result := pool.queue.Enqueue(Task{TripID: trip.TripID, DriverID: trip.DriverID, Span: span.SpanContext()})
+		result := pool.queue.enqueue(Task{TripID: trip.TripID, DriverID: trip.DriverID, Span: span.SpanContext()}, func() { pool.metrics.QueueChange(ctx, 1) })
 		pool.metrics.StaleCheck(ctx, string(result))
-		if result == Queued {
-			pool.metrics.QueueChange(ctx, 1)
-		}
 		if result == Dropped {
 			pool.logger.WarnContext(ctx, "position queue full", "trip_id", trip.TripID)
 		}
@@ -124,8 +121,9 @@ func (pool *Pool) work() {
 			if !ok {
 				return
 			}
+			started := pool.queue.Start(item)
 			pool.metrics.QueueChange(pool.workCtx, -1)
-			if !pool.queue.Start(item) {
+			if !started {
 				pool.metrics.PositionRequest(pool.workCtx, "cancelled", 0)
 				continue
 			}

@@ -233,3 +233,35 @@ func TestSecondTickDoesNotDuplicateInFlightTrip(t *testing.T) {
 	default:
 	}
 }
+
+type orderedMetrics struct {
+	entered chan struct{}
+	release chan struct{}
+	changes chan int64
+}
+
+func (m *orderedMetrics) StaleCheck(context.Context, string)             { close(m.entered); <-m.release }
+func (m *orderedMetrics) QueueChange(_ context.Context, delta int64)     { m.changes <- delta }
+func (*orderedMetrics) WorkerChange(context.Context, int64)              {}
+func (*orderedMetrics) PositionRequest(context.Context, string, float64) {}
+
+func TestQueueMetricIncrementsBeforeWorkerRemovesTask(t *testing.T) {
+	scanner := &fakeScanner{trips: []model.StaleTrip{{TripID: uuid.New()}}, scanned: make(chan struct{}, 1)}
+	push := &fakePush{calls: make(chan uuid.UUID, 1)}
+	metrics := &orderedMetrics{entered: make(chan struct{}), release: make(chan struct{}), changes: make(chan int64, 2)}
+	ticker := &fakeTicker{ticks: make(chan time.Time, 1)}
+	pool := NewPool(scanner, push, NewQueue(1), metrics, slog.New(slog.NewTextHandler(io.Discard, nil)), ticker, time.Minute, time.Second, 1)
+	pool.Start()
+	ticker.ticks <- time.Now()
+	<-metrics.entered
+	first := <-metrics.changes
+	close(metrics.release)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err := pool.Stop(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if first != 1 {
+		t.Fatalf("first queue change = %d, want 1", first)
+	}
+}

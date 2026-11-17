@@ -37,6 +37,10 @@ func NewQueue(size int) *Queue {
 }
 
 func (queue *Queue) Enqueue(task Task) EnqueueResult {
+	return queue.enqueue(task, nil)
+}
+
+func (queue *Queue) enqueue(task Task, onQueued func()) EnqueueResult {
 	queue.mu.Lock()
 	defer queue.mu.Unlock()
 	if _, exists := queue.pending[task.TripID]; exists {
@@ -46,6 +50,9 @@ func (queue *Queue) Enqueue(task Task) EnqueueResult {
 	select {
 	case queue.tasks <- item:
 		queue.pending[task.TripID] = item
+		if onQueued != nil {
+			onQueued()
+		}
 		return Queued
 	default:
 		return Dropped
